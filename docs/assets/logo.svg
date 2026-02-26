@@ -1,0 +1,13 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="28" fill="url(#bg)"/>
+  <text x="60" y="52" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="white">W</text>
+  <text x="60" y="88" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="rgba(255,255,255,0.85)">WouldIBe</text>
+  <circle cx="95" cy="25" r="8" fill="#fbbf24"/>
+  <text x="95" y="29" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#1a1a2e">?</text>
+</svg>

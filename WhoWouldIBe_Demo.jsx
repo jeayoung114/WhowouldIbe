@@ -1,0 +1,409 @@
+import { useState, useEffect, useRef } from "react";
+
+// ─── Mock Data ───
+const MOCK_MOVIES = [
+  { id: 1, title: "Parasite", year: 2019, genre: "Thriller/Drama", poster: null },
+  { id: 2, title: "Squid Game", year: 2021, genre: "Thriller/Drama", poster: null },
+  { id: 3, title: "Crash Landing on You", year: 2019, genre: "Romance/Drama", poster: null },
+  { id: 4, title: "The Dark Knight", year: 2008, genre: "Action/Thriller", poster: null },
+  { id: 5, title: "Friends", year: 1994, genre: "Comedy", poster: null },
+  { id: 6, title: "Spirited Away", year: 2001, genre: "Animation/Fantasy", poster: null },
+  { id: 7, title: "Breaking Bad", year: 2008, genre: "Crime/Drama", poster: null },
+  { id: 8, title: "Goblin", year: 2016, genre: "Fantasy/Romance", poster: null },
+];
+
+const MOCK_QUESTIONS = {
+  "Parasite": [
+    { q: "You discover your neighbor has something you desperately want. What do you do?", opts: ["Plan a clever way to earn it", "Try to befriend them and hope for the best", "Accept that it's theirs", "Find an alternative path entirely"] },
+    { q: "At a dinner party, you notice the host is lying about their wealth. Your reaction?", opts: ["Study the performance carefully", "Feel uncomfortable and stay quiet", "Confront them privately", "Admire their confidence"] },
+    { q: "Your family is struggling financially. A morally gray opportunity arises. You...", opts: ["Take it without hesitation for your family", "Weigh the risks carefully first", "Refuse on principle", "Look for a legitimate alternative"] },
+    { q: "Someone underestimates you based on your background. How do you respond?", opts: ["Prove them wrong through action", "Use their assumption to your advantage", "Ignore them completely", "Educate them patiently"] },
+    { q: "You're caught in a sudden rainstorm with nowhere to shelter. Your thought is...", opts: ["This is just another obstacle to overcome", "Find beauty in the chaos", "Panic and look for any cover", "Help others around you first"] },
+    { q: "In a group project, you naturally take which role?", opts: ["The strategic mastermind", "The loyal executor", "The creative problem-solver", "The peacekeeper"] },
+    { q: "What matters most to you in life?", opts: ["Respect and recognition", "Family above everything", "Simple pleasures and stability", "Justice and fairness"] },
+  ],
+  "Squid Game": [
+    { q: "You're offered a huge sum of money for a dangerous challenge. What's your first thought?", opts: ["How dangerous exactly?", "I have nothing to lose", "No amount is worth my life", "Who else is playing?"] },
+    { q: "In a group survival situation, you would...", opts: ["Form alliances strategically", "Protect the weakest members", "Focus solely on self-preservation", "Try to change the rules of the game"] },
+    { q: "A childhood friend betrays your trust. How do you react?", opts: ["Cut them off completely", "Try to understand their reasons", "Forgive but never forget", "Get even when the time is right"] },
+    { q: "You witness someone cheating in a competition. You...", opts: ["Report it immediately", "Use the information as leverage", "Mind your own business", "Confront the cheater directly"] },
+    { q: "What drives you the most?", opts: ["Paying off a debt (literal or emotional)", "Proving something to yourself", "Protecting someone you love", "The thrill of winning"] },
+    { q: "When facing impossible odds, your mindset is...", opts: ["Find the loophole nobody else sees", "Keep pushing through sheer willpower", "Accept fate with dignity", "Rally others to fight together"] },
+    { q: "At your core, you believe people are...", opts: ["Fundamentally good but desperate", "Selfish when it matters", "Capable of change", "Predictable in their selfishness"] },
+  ],
+};
+
+// Fallback questions for movies not in the mock data
+const DEFAULT_QUESTIONS = [
+  { q: "In a conflict, you tend to...", opts: ["Think strategically and plan", "Follow your heart", "Mediate between sides", "Observe from a distance"] },
+  { q: "What role do you play in your friend group?", opts: ["The leader", "The loyal sidekick", "The comic relief", "The mysterious one"] },
+  { q: "When faced with a moral dilemma, you prioritize...", opts: ["Logic and outcomes", "Emotions and relationships", "Rules and duty", "Personal freedom"] },
+  { q: "Your ideal weekend involves...", opts: ["An adventure or challenge", "Quality time with loved ones", "Solitude and reflection", "Creating something new"] },
+  { q: "What's your biggest fear?", opts: ["Losing control", "Being alone", "Being ordinary", "Being misunderstood"] },
+  { q: "How do you handle betrayal?", opts: ["Seek revenge strategically", "Forgive and move on", "Cut them out forever", "Confront them head-on"] },
+  { q: "What quality do you value most in yourself?", opts: ["Intelligence", "Loyalty", "Courage", "Empathy"] },
+];
+
+const MOCK_RESULTS = {
+  "Parasite": [
+    { name: "Ki-woo (Kevin)", match: 87, traits: ["Ambitious", "Resourceful", "Hopeful", "Strategic"], reasoning: "Like Ki-woo, you combine intelligence with ambition. You see opportunities where others see obstacles, and you're willing to take calculated risks for your family and future. Your optimistic streak keeps you moving forward even when the odds seem stacked against you." },
+    { name: "Ki-jung (Jessica)", match: 82, traits: ["Clever", "Confident", "Adaptable", "Bold"], reasoning: "You share Ki-jung's sharp mind and natural confidence. You can read a room instantly and adapt your approach accordingly." },
+    { name: "Ki-taek", match: 74, traits: ["Philosophical", "Loyal", "Patient", "Unpredictable"], reasoning: "Like the family patriarch, you have a deep well of patience and philosophical outlook on life's unfairness." },
+  ],
+  "Squid Game": [
+    { name: "Seong Gi-hun (Player 456)", match: 91, traits: ["Compassionate", "Determined", "Impulsive", "Moral"], reasoning: "Like Gi-hun, you lead with your heart even when logic says otherwise. You see the humanity in everyone and refuse to let the game change who you fundamentally are. Your determination isn't about winning\u2014it's about staying true to yourself." },
+    { name: "Cho Sang-woo (Player 218)", match: 78, traits: ["Strategic", "Intelligent", "Pragmatic", "Complex"], reasoning: "You share Sang-woo's analytical mind and ability to see the bigger picture, even when it means making tough calls." },
+    { name: "Kang Sae-byeok (Player 067)", match: 73, traits: ["Independent", "Resilient", "Guarded", "Brave"], reasoning: "Like Sae-byeok, you've learned to rely on yourself. Beneath your tough exterior lies a deeply caring person." },
+  ],
+};
+
+const DEFAULT_RESULTS = [
+  { name: "The Protagonist", match: 85, traits: ["Determined", "Brave", "Empathetic", "Growing"], reasoning: "You embody the classic hero's journey\u2014someone who rises to challenges not because they're fearless, but because they care deeply about something worth fighting for. Your growth mindset and determination make you a natural lead." },
+  { name: "The Mentor", match: 76, traits: ["Wise", "Patient", "Mysterious", "Supportive"], reasoning: "You have a depth of wisdom that comes from experience. You naturally guide others and see potential where they see limitations." },
+  { name: "The Wildcard", match: 68, traits: ["Unpredictable", "Creative", "Charismatic", "Free"], reasoning: "You bring energy and surprise to every situation. People never quite know what you'll do next, and that's your superpower." },
+];
+
+// ─── Components ───
+
+function SearchBar({ value, onChange, suggestions, onSelect }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div className="relative w-full max-w-lg mx-auto">
+      <div className="flex items-center bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden transition-all duration-300" style={focused ? { boxShadow: "0 0 0 3px rgba(99,102,241,0.2)" } : {}}>
+        <svg className="w-5 h-5 text-gray-400 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <input
+          className="w-full py-4 px-3 text-lg outline-none bg-transparent text-gray-800 placeholder-gray-400"
+          placeholder="Search a movie or drama..."
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 200)}
+        />
+      </div>
+      {focused && suggestions.length > 0 && (
+        <div className="absolute w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-10">
+          {suggestions.map(m => (
+            <button key={m.id} className="w-full text-left px-5 py-3 hover:bg-indigo-50 transition-colors flex justify-between items-center" onMouseDown={() => onSelect(m)}>
+              <span className="font-medium text-gray-800">{m.title}</span>
+              <span className="text-sm text-gray-400">{m.year} &middot; {m.genre}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProgressBar({ current, total }) {
+  return (
+    <div className="w-full max-w-lg mx-auto mb-8">
+      <div className="flex justify-between text-sm text-gray-400 mb-2">
+        <span>Question {current} of {total}</span>
+        <span>{Math.round((current / total) * 100)}%</span>
+      </div>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out" style={{ width: `${(current / total) * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function QuestionCard({ question, onAnswer, index }) {
+  const [selected, setSelected] = useState(null);
+  const [animating, setAnimating] = useState(true);
+
+  useEffect(() => {
+    setAnimating(true);
+    setSelected(null);
+    const t = setTimeout(() => setAnimating(false), 50);
+    return () => clearTimeout(t);
+  }, [index]);
+
+  const handleSelect = (i) => {
+    setSelected(i);
+    setTimeout(() => onAnswer(i), 400);
+  };
+
+  return (
+    <div className="w-full max-w-lg mx-auto transition-all duration-500" style={{ opacity: animating ? 0 : 1, transform: animating ? "translateY(20px)" : "translateY(0)" }}>
+      <h2 className="text-xl font-semibold text-gray-800 mb-6 leading-relaxed">{question.q}</h2>
+      <div className="space-y-3">
+        {question.opts.map((opt, i) => (
+          <button
+            key={i}
+            onClick={() => handleSelect(i)}
+            className="w-full text-left px-5 py-4 rounded-xl border-2 transition-all duration-300 text-gray-700"
+            style={{
+              borderColor: selected === i ? "#6366f1" : "#e5e7eb",
+              backgroundColor: selected === i ? "#eef2ff" : "white",
+              transform: selected === i ? "scale(1.02)" : "scale(1)",
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold shrink-0" style={{ backgroundColor: selected === i ? "#6366f1" : "#f3f4f6", color: selected === i ? "white" : "#6b7280" }}>
+                {String.fromCharCode(65 + i)}
+              </div>
+              <span className="text-base">{opt}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LoadingState({ movie }) {
+  const [dots, setDots] = useState("");
+  const [step, setStep] = useState(0);
+  const steps = [
+    `Searching the internet for ${movie.title} characters...`,
+    "Analyzing character personality profiles...",
+    "Comparing your responses to character traits...",
+    "Finding your perfect match..."
+  ];
+
+  useEffect(() => {
+    const dotTimer = setInterval(() => setDots(d => d.length >= 3 ? "" : d + "."), 400);
+    const stepTimer = setInterval(() => setStep(s => Math.min(s + 1, steps.length - 1)), 1500);
+    return () => { clearInterval(dotTimer); clearInterval(stepTimer); };
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center justify-center py-20">
+      <div className="relative w-20 h-20 mb-8">
+        <div className="absolute inset-0 rounded-full border-4 border-indigo-100" />
+        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-500" style={{ animation: "spin 1s linear infinite" }} />
+        <div className="absolute inset-3 rounded-full border-4 border-transparent border-t-purple-500" style={{ animation: "spin 0.8s linear infinite reverse" }} />
+      </div>
+      <p className="text-lg text-gray-600 font-medium">{steps[step]}{dots}</p>
+      <div className="flex gap-2 mt-6">
+        {steps.map((_, i) => (
+          <div key={i} className="w-2 h-2 rounded-full transition-all duration-300" style={{ backgroundColor: i <= step ? "#6366f1" : "#e5e7eb" }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TraitBar({ trait, value }) {
+  const [width, setWidth] = useState(0);
+  useEffect(() => { const t = setTimeout(() => setWidth(value), 200); return () => clearTimeout(t); }, [value]);
+  return (
+    <div className="mb-3">
+      <div className="flex justify-between text-sm mb-1">
+        <span className="text-gray-600">{trait}</span>
+        <span className="text-indigo-600 font-semibold">{value}%</span>
+      </div>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${width}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function ResultCard({ result, movie, onRetake }) {
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setRevealed(true), 300); return () => clearTimeout(t); }, []);
+
+  const topResult = result[0];
+  const otherResults = result.slice(1);
+  const traitValues = [92, 85, 78, 71];
+
+  return (
+    <div className="w-full max-w-lg mx-auto transition-all duration-700" style={{ opacity: revealed ? 1 : 0, transform: revealed ? "translateY(0)" : "translateY(30px)" }}>
+      {/* Main match card */}
+      <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-1 mb-6 shadow-2xl">
+        <div className="bg-white rounded-2xl p-8">
+          <div className="text-center mb-6">
+            <p className="text-sm text-gray-400 uppercase tracking-widest mb-2">Your character match</p>
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 mx-auto mb-4 flex items-center justify-center">
+              <span className="text-4xl">{topResult.name[0]}</span>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-1">{topResult.name}</h2>
+            <p className="text-gray-400 text-sm">from {movie.title}</p>
+          </div>
+
+          {/* Match percentage */}
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="text-5xl font-bold bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text" style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              {topResult.match}%
+            </div>
+            <span className="text-gray-400 text-sm">match</span>
+          </div>
+
+          {/* Traits */}
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Your shared traits</h3>
+            {topResult.traits.map((trait, i) => (
+              <TraitBar key={trait} trait={trait} value={traitValues[i]} />
+            ))}
+          </div>
+
+          {/* Reasoning */}
+          <div className="bg-gray-50 rounded-xl p-5 mb-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Why you match</h3>
+            <p className="text-gray-600 leading-relaxed text-sm">{topResult.reasoning}</p>
+          </div>
+
+          {/* Other matches */}
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Runner-ups</h3>
+            <div className="space-y-2">
+              {otherResults.map(r => (
+                <div key={r.name} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-sm font-semibold text-indigo-500">{r.name[0]}</div>
+                    <span className="text-gray-700 font-medium text-sm">{r.name}</span>
+                  </div>
+                  <span className="text-indigo-500 font-semibold text-sm">{r.match}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3">
+        <button onClick={onRetake} className="flex-1 py-3 px-6 rounded-xl border-2 border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors">
+          Try Another
+        </button>
+        <button className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium shadow-lg hover:shadow-xl transition-all">
+          Share Result
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main App ───
+export default function WhoWouldIBe() {
+  const [screen, setScreen] = useState("home"); // home | survey | loading | result
+  const [search, setSearch] = useState("");
+  const [movie, setMovie] = useState(null);
+  const [qIndex, setQIndex] = useState(0);
+  const [answers, setAnswers] = useState([]);
+  const [result, setResult] = useState(null);
+
+  const suggestions = search.length > 0
+    ? MOCK_MOVIES.filter(m => m.title.toLowerCase().includes(search.toLowerCase()))
+    : [];
+
+  const questions = movie ? (MOCK_QUESTIONS[movie.title] || DEFAULT_QUESTIONS) : [];
+
+  const handleSelect = (m) => {
+    setMovie(m);
+    setSearch(m.title);
+    setQIndex(0);
+    setAnswers([]);
+    setTimeout(() => setScreen("survey"), 300);
+  };
+
+  const handleAnswer = (answerIndex) => {
+    const newAnswers = [...answers, answerIndex];
+    setAnswers(newAnswers);
+    if (qIndex + 1 < questions.length) {
+      setQIndex(qIndex + 1);
+    } else {
+      setScreen("loading");
+      setTimeout(() => {
+        const res = MOCK_RESULTS[movie.title] || DEFAULT_RESULTS;
+        setResult(res);
+        setScreen("result");
+      }, 6000);
+    }
+  };
+
+  const handleRetake = () => {
+    setScreen("home");
+    setSearch("");
+    setMovie(null);
+    setQIndex(0);
+    setAnswers([]);
+    setResult(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+      `}</style>
+
+      {/* Header */}
+      <header className="pt-8 pb-4 text-center">
+        <button onClick={handleRetake} className="inline-block">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text" style={{ WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            WhoWouldIBe
+          </h1>
+        </button>
+      </header>
+
+      <main className="px-6 pb-20">
+        {/* HOME */}
+        {screen === "home" && (
+          <div className="pt-12">
+            <div className="text-center mb-12">
+              <div className="text-6xl mb-6" style={{ animation: "float 3s ease-in-out infinite" }}>
+                <span role="img" aria-label="movie">&#127916;</span>
+              </div>
+              <h2 className="text-4xl font-bold text-gray-800 mb-4">
+                Which character are you?
+              </h2>
+              <p className="text-lg text-gray-500 max-w-md mx-auto">
+                Enter any movie or drama, take a quick personality survey, and discover your character match powered by AI.
+              </p>
+            </div>
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              suggestions={suggestions}
+              onSelect={handleSelect}
+            />
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-400 mb-3">Popular picks</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {MOCK_MOVIES.slice(0, 5).map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => handleSelect(m)}
+                    className="px-4 py-2 rounded-full bg-white border border-gray-200 text-sm text-gray-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-sm"
+                  >
+                    {m.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SURVEY */}
+        {screen === "survey" && (
+          <div className="pt-6">
+            <div className="text-center mb-6">
+              <span className="inline-block px-4 py-1 rounded-full bg-indigo-50 text-indigo-600 text-sm font-medium">
+                {movie.title} ({movie.year})
+              </span>
+            </div>
+            <ProgressBar current={qIndex + 1} total={questions.length} />
+            <QuestionCard
+              question={questions[qIndex]}
+              onAnswer={handleAnswer}
+              index={qIndex}
+            />
+          </div>
+        )}
+
+        {/* LOADING */}
+        {screen === "loading" && <LoadingState movie={movie} />}
+
+        {/* RESULT */}
+        {screen === "result" && result && (
+          <div className="pt-6">
+            <ResultCard result={result} movie={movie} onRetake={handleRetake} />
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
