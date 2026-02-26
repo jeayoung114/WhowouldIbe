@@ -1,24 +1,37 @@
-# WhoWouldIBe
+# 🎬 WhoWouldIBe
 
-🎬 Find out which movie/drama character matches your personality!
+**Which movie character are you?**
 
-## How It Works
+Pick any movie or drama, answer a few personality questions, and AI will tell you which character you'd be — with a match percentage and shareable result card.
 
-1. **Search** — Pick a movie or drama
-2. **Answer** — Take a short personality quiz (7 questions)
-3. **Match** — AI finds your character match
-4. **Share** — Get a shareable result card
+## Features
 
-## Try It
+- 🔍 **Search** — Find any movie or drama with posters and details (TMDB)
+- 🧠 **Quiz** — Answer AI-generated questions themed to your movie
+- 🎯 **Match** — Get paired with a character based on personality analysis
+- 📤 **Share** — Download and share your result card
 
-Open `demo.html` in your browser to see a preview.
+## Demo
 
-## Tech
+Open [`demo.html`](demo.html) in your browser, or run the [`WhoWouldIBe_Demo.jsx`](WhoWouldIBe_Demo.jsx) component in React.
 
-- React + Next.js
-- Claude API (AI matching)
-- TMDB API (movie search)
+## Tech Stack
+
+| Layer | Tech |
+|-------|------|
+| Frontend | React, Next.js, TypeScript |
+| AI | Claude API |
+| Movie Data | TMDB API |
+| Database | Supabase (PostgreSQL) |
+
+## Getting Started
+
+```bash
+npm install
+cp .env.example .env.local   # add TMDB_API_KEY & ANTHROPIC_API_KEY
+npm run dev
+```
 
 ## License
 
-Apache 2.0
+[Apache 2.0](LICENSE)
